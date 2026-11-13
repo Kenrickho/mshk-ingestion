@@ -2201,11 +2201,17 @@ function toggleBulk() {
 }
 
 // ─── SONOVAULT BPM ───────────────────────────────────────────────────────
-const SONOVAULT_API_KEY = 'svk_live_1JkenkhNl9I4xnF56OrRBN25puKALgFv';
-const SONOVAULT_BASE    = 'https://api.sonovault.now';
+// Requests go through sv.php on the same server (holds the API key, adds CORS) —
+// SonoVault can't be called straight from the browser.
+const SONOVAULT_PROXY = 'sv.php';
 
 async function sonovaultGet(path) {
-  const res = await fetch(SONOVAULT_BASE + path, { headers: { 'x-api-key': SONOVAULT_API_KEY } });
+  const [p, q] = path.split('?');
+  const url = SONOVAULT_PROXY + '?path=' + encodeURIComponent(p) + (q ? '&' + q : '');
+  let res;
+  try { res = await fetch(url); }
+  catch (e) { const err = new Error('Cannot reach sv.php — upload it next to the tool'); err.status = 0; throw err; }
+  if (!res.headers.get('X-SV-Proxy')) { const err = new Error('sv.php not found or not running PHP on this server'); err.status = 0; throw err; }
   if (res.status === 404) return null;
   if (res.status === 429) {
     const ra = res.headers.get('Retry-After');
